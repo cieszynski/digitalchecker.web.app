@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>digitalchecker</title>
+
+    <style>
+        *,
+        ::before,
+        ::after {
+            margin: 0;
+        }
+
+        #content {
+            white-space: pre-wrap;
+            border: 1px solid black;
+            padding: 8px;
+            height: 200px;
+        }
+
+        p {
+            position: relative;
+            background-color: #ddd;
+            border: 1px solid red;
+        }
+
+        p::after {
+            content: "X";
+            position: absolute;
+            bottom: 0;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="content" contenteditable="true"></div>
+
+    <script>
+        content.addEventListener('input', (e)=>{
+            console.dir(e)
+        });
+
+        content.addEventListener('beforeinput', (e)=>{
+            console.dir(e);
+            console.dir(getSelection().getRangeAt(0))
+        });
+/*         const rootObserver = new MutationObserver((records) => {
+
+            records.forEach((record, idx) => {
+
+                record.addedNodes.forEach((addedNode) => {
+
+                    switch (addedNode.nodeName) {
+                        case 'DIV':
+                        case '#text':
+                            const newNode = document.createElement('p');
+                            newNode.append(addedNode.textContent);
+                            addedNode.replaceWith(newNode);
+                            getSelection().selectAllChildren(newNode);
+                            getSelection().collapseToEnd();
+                            break;
+                        case 'BR':
+                            console.log('XXX1')
+                            //addedNode.remove();
+                            break;
+                    }
+                });
+            });
+        });
+
+        rootObserver.observe(content, { childList: true });
+
+        const mainObserver = new MutationObserver((records) => {
+
+            records.forEach((record, idx) => {
+
+                record.addedNodes.forEach((addedNode) => {
+
+                    switch (addedNode.nodeName) {
+                        case 'BR':
+                            console.log(idx)
+                            if (idx) {
+                                addedNode.remove();
+                            } else {
+                                const newNode = document.createTextNode("\n\r");
+                                addedNode.replaceWith(newNode);
+                                getSelection().selectAllChildren(newNode.parentNode);
+                                getSelection().collapseToEnd();
+                            }
+                            break;
+                        default:
+                            console.log(addedNode.nodeName)
+                    }
+                });
+            });
+        });
+
+        mainObserver.observe(content, { subtree: true, childList: true, characterDataOldValue: true  }); */
+    </script>
+</body>
+
+</html>
