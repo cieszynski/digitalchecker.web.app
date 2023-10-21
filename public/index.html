@@ -7,8 +7,19 @@
     <style media="screen">
 
     </style>
+        <script>
+          async function getDir() {
+              const dirHandle = await window.showOpenFilePicker({startIn: "downloads"});
+              const fileHanlde = await dirHandle[0].getFile()
+              console.dir(fileHanlde)
+              dirHandle[0].requestPermission({mode: 'readwrite'})
+              // run code for dirHandle
+          }
+  
+      </script>
   </head>
   <body>
     digitalchecker.web.app
+    <button type="button" onclick="getDir()">test</button>
   </body>
 </html>
