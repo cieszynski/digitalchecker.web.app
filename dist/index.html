@@ -1,103 +1,397 @@
 <!DOCTYPE html>
-<html>
+<html lang="de">
 
 <head>
+    <title>Bridges</title>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>digitalchecker</title>
-
     <style>
         *,
         ::before,
         ::after {
             margin: 0;
+            box-sizing: border-box;
+            user-select: none;
         }
 
-        #content {
-            white-space: pre-wrap;
-            border: 1px solid black;
-            padding: 8px;
-            height: 200px;
-        }
-
-        p {
+        body {
+            width: 100vw;
+            height: 100%;
+            max-height: 100%;
+            background-color: #fff;
             position: relative;
-            background-color: #ddd;
-            border: 1px solid red;
         }
 
-        p::after {
-            content: "X";
+        button {
+            background: none;
+            border: none;
+        }
+
+        button.nav {
+            text-align: start;
+            padding-left: 32px;
+            font-size: 19px;
+            color: black;
+            position: relative;
+            line-height: 1;
+        }
+
+        button.nav[disabled] {
+            color: gray;
+        }
+
+        button.nav::before {
+            content: "";
+            background-color: currentColor;
             position: absolute;
-            bottom: 0;
+            height: 24px;
+            width: 24px;
+            left: 0px;
+            bottom: 0px;
+        }
+
+        button.nav.overview::before {
+            -webkit-mask-image: url(assets/apps_24.svg);
+            mask-image: url(assets/apps_24.svg);
+        }
+
+        button.nav.pause::before {
+            -webkit-mask-image: url(assets/pause_circle_24.svg);
+            mask-image: url(assets/pause_circle_24.svg);
+        }
+
+        button.nav.finish::before {
+            -webkit-mask-image: url(assets/check_circle_24.svg);
+            mask-image: url(assets/check_circle_24.svg);
+        }
+
+        form {
+            display: flex;
+            height: 100%;
+        }
+
+        html {
+            width: 100vw;
+            height: 100%;
+            overflow: hidden;
+            font-family: sans-serif;
+        }
+
+        hr {
+            border: 1px solid lightgray
+        }
+
+        label {
+            position: relative;
+        }
+
+        main {
+            width: 100%;
+            height: 100%;
+            background-color: #254c53;
+            position: relative;
+        }
+
+        nav {
+            display: flex;
+            flex-direction: column;
+            padding: 56px 60px 30px 60px;
+            background-color: #deffff;
+            row-gap: 24px;
+            width: 300px;
+            height: 100%;
+        }
+
+        output.progress {
+            width: 180px;
+            height: 16px;
+            text-align: center;
+            font-weight: bold;
+            font-size: 18px;
+        }
+
+        output.progress::after {
+            content: "% bearbeitet";
         }
     </style>
+    <script>
+        class QuizTimer extends HTMLElement {
+
+            static observedAttributes = ['duration'];
+
+            static format = (ms) => new Date(ms)
+                .toISOString()
+                .slice((ms >= 3600000)
+                    ? 12    // 0:00:00
+                    : 14,   //   00:00
+                    19);
+
+            constructor() {
+                super();
+
+                this.attachShadow({ mode: "open" });
+                this.shadowRoot.innerHTML = `
+        <svg viewBox="0 0 90 90">
+            <style>
+                @keyframes pacer {}
+
+                @keyframes timer {
+                    0% {
+                        stroke-width: 0px;
+                        stroke-dashoffset: -100px;
+                    }
+                    0.1% {
+                        stroke-width: 7px;
+                    }
+
+                    to {
+                        stroke-width: 7px;
+                        stroke-dashoffset: 0px;
+                    }
+                }
+
+                :host {
+                    /* position: relative; */
+                }
+
+                circle {
+                    fill: none;
+                    stroke: var(--background-color, lightgray);
+                    stroke-width: 7px;
+                }
+
+                path {
+                    fill: none;
+                    stroke-width: 0px;
+                    stroke: var(--color, black);
+                    stroke-linecap: round;
+                    animation: 3s linear .01s both paused timer,
+                        1s linear 4 .01s both paused pacer;
+                }
+
+                text {
+                    stroke: none;
+                    fill: currentColor;
+                    font-family: sans;
+                    font-size: 20px;
+                }
+            </style>
+            <circle cx="45" cy="45" r="40" />
+            <path id="p" d="M 45 5 A 20 20 0 0 1 45 85 A 20 20 0 0 1 45 5" 
+                stroke-dasharray="100"
+                pathLength="100" />
+            <text x="45" y="47.5" dominant-baseline="middle" text-anchor="middle">00:00</text>
+        </svg>`;
+
+                const path = this.shadowRoot.querySelector('path');
+
+                path.addEventListener('animationstart', (e) => {
+                    if (e.animationName == 'timer') {
+                        const event = new CustomEvent('quiztimerstart', {
+                            bubbles: true,
+                            detail: {
+                                duration: this.duration
+                            }
+                        });
+
+                        this.dispatchEvent(event)
+                        this.onstart(event);
+                    }
+                });
+
+                path.addEventListener('animationend', (e) => {
+                    if (e.animationName == 'timer') {
+                        const event = new CustomEvent('quiztimerend', {
+                            bubbles: true,
+                            detail: {
+                                duration: this.duration
+                            }
+                        });
+
+                        this.dispatchEvent(event)
+                        this.onend(event);
+                    }
+                });
+
+                path.addEventListener('animationiteration', (e) => {
+                    this.shadowRoot
+                        .querySelector('text')
+                        .textContent = QuizTimer
+                            .format(this.duration - e.elapsedTime * 1000);
+                });
+            }
+
+            attributeChangedCallback(name, oldValue, newValue) {
+                switch (name) {
+                    case 'duration':
+                        this.duration = parseInt(newValue);
+                        this.shadowRoot
+                            .querySelector('text')
+                            .textContent = QuizTimer
+                                .format(this.duration);
+                        break;
+                }
+            }
+
+            onpause(e) { console.debug(e); }
+            onstart(e) { console.debug(e); }
+            onend(e) { console.debug(e); }
+
+            start() {
+                const duration = parseInt(this.duration);
+
+                this.shadowRoot
+                    .querySelector('path')
+                    .getAnimations()
+                    .map((animation) => {
+                        animation.effect.updateTiming(
+                            (animation.animationName == 'pacer') ? {
+                                duration: duration / (duration / 1000),
+                                iterations: (duration / 1000) + 1
+                            } : {
+                                duration: duration,
+                            }
+                        );
+                        animation.play();
+                    });
+            }
+
+            pause() {
+                let anim;
+
+                this.shadowRoot
+                    .querySelector('path')
+                    .getAnimations()
+                    .map((animation) => {
+                        anim = animation;
+                        anim.pause();
+                    });
+
+                const event = new CustomEvent('quiztimerpause', {
+                    bubbles: true,
+                    detail: {
+                        currentTime: anim.currentTime,
+                        duration: this.duration
+                    }
+                });
+
+                this.dispatchEvent(event)
+                this.onpause(event);
+            }
+
+            finish() {
+                this.shadowRoot
+                    .querySelector('path')
+                    .getAnimations()
+                    .map((animation) => animation.finish());
+            }
+        }
+
+        customElements.define("dc-quiztimer", QuizTimer);
+    </script>
+    <script>
+
+        // play(time, by)
+        const play = (time, by) => new Promise((resolve, reject) => {
+            console.assert(typeof time === 'number', `play(time, by): <time> must be type of number, not ${typeof time}`);
+            console.assert(typeof by === 'number', `play(time, by): <by> must be type of number, not ${typeof time}`);
+            console.assert(by >= 0, 'play(time, by): <by> must be non-negative or auto');
+
+            document.body
+                .animate([], { duration: by })
+                .onfinish = (e) => {
+                    document
+                        .getAnimations()
+                        .forEach((animation) => animation.pause());
+                    resolve(time + by);
+                }
+
+            document
+                .getAnimations()
+                .forEach((animation) => {
+                    animation.currentTime = time;
+                    animation.play();
+                });
+        });
+
+        // add(element, pseudoElement, scenes)
+        // add(element, scenes)
+        const add = (element, ...args) => {
+            console.assert(args.length);
+
+            const scenes = args.pop();
+            const pseudoElement = args.pop();   // could be null
+
+            for (const [time, keyFrameEffect] of Object.entries(scenes)) {
+                element
+                    .animate(keyFrameEffect.k, Object.assign({
+                        pseudoElement: pseudoElement,
+                        fill: 'forwards',
+                        delay: time
+                    }, keyFrameEffect.o))
+                    .pause();
+            };
+        }
+    </script>
+
+
 </head>
 
 <body>
-    <div id="content" contenteditable="true"></div>
+    <form id="data">
+        <nav>
+            <dc-quiztimer id="quiztimer" duration="3600000" onclick="this.start()"></dc-quiztimer>
 
+            <output value=".35" class="progress" name="progress">100</output>
+            <hr>
+            <button type="button" class="nav overview">Übersicht</button>
+            <hr>
+            <button name="btnPause" type="button" class="nav pause" style="margin-top: auto;" disabled>Pause</button>
+            <hr>
+            <button type="button" class="nav finish">Fertigstellen</button>
+        </nav>
+        <main>main
+        </main>
+    </form>
+
+    <dialog id="dlgWelcome"></dialog>
+    <dialog id="dlgPause">
+        <h1>Pause</h1>
+        <button type="button"
+            onclick="dlgPause.close();quiztimer.start();data.elements.btnPause.disabled = !data.elements.btnPause.disabled">Weiter</button>
+    </dialog>
+    <dialog id="dlgFinished"></dialog>
     <script>
-        content.addEventListener('input', (e)=>{
-            console.dir(e)
-        });
+        data.elements.btnPause.addEventListener('click', (e) => {
+            e.target.disabled = !e.target.disabled
+            quiztimer.pause();
+            dlgPause.showModal();
+        })
+        data.addEventListener('quiztimerstart', (e) => { data.elements.btnPause.disabled = false })
+    </script>
 
-        content.addEventListener('beforeinput', (e)=>{
-            console.dir(e);
-            console.dir(getSelection().getRangeAt(0))
-        });
-/*         const rootObserver = new MutationObserver((records) => {
+    <script type="x">
 
-            records.forEach((record, idx) => {
-
-                record.addedNodes.forEach((addedNode) => {
-
-                    switch (addedNode.nodeName) {
-                        case 'DIV':
-                        case '#text':
-                            const newNode = document.createElement('p');
-                            newNode.append(addedNode.textContent);
-                            addedNode.replaceWith(newNode);
-                            getSelection().selectAllChildren(newNode);
-                            getSelection().collapseToEnd();
-                            break;
-                        case 'BR':
-                            console.log('XXX1')
-                            //addedNode.remove();
-                            break;
-                    }
-                });
-            });
-        });
-
-        rootObserver.observe(content, { childList: true });
-
-        const mainObserver = new MutationObserver((records) => {
-
-            records.forEach((record, idx) => {
-
-                record.addedNodes.forEach((addedNode) => {
-
-                    switch (addedNode.nodeName) {
-                        case 'BR':
-                            console.log(idx)
-                            if (idx) {
-                                addedNode.remove();
-                            } else {
-                                const newNode = document.createTextNode("\n\r");
-                                addedNode.replaceWith(newNode);
-                                getSelection().selectAllChildren(newNode.parentNode);
-                                getSelection().collapseToEnd();
-                            }
-                            break;
-                        default:
-                            console.log(addedNode.nodeName)
-                    }
-                });
-            });
-        });
-
-        mainObserver.observe(content, { subtree: true, childList: true, characterDataOldValue: true  }); */
+        add(div, '::before', {
+            0: {
+                k: [
+                    { opacity: 1 },
+                    { opacity: 0 }
+                ],
+                o: {
+                    duration: 1300,
+                }
+            },
+            3000: {
+                k: [
+                    { opacity: 0 },
+                    { opacity: 1, backgroundColor: 'green' }
+                ],
+                o: {
+                    duration: 2300,
+                }
+            },
+        })
     </script>
 </body>
 

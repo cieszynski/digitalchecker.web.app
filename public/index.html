@@ -1,25 +1,18 @@
 <!DOCTYPE html>
 <html>
-  <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>digitalchecker.web.app</title>
-    <style media="screen">
 
-    </style>
-        <script>
-          async function getDir() {
-              const dirHandle = await window.showOpenFilePicker({startIn: "downloads"});
-              const fileHanlde = await dirHandle[0].getFile()
-              console.dir(fileHanlde)
-              dirHandle[0].requestPermission({mode: 'readwrite'})
-              // run code for dirHandle
-          }
-  
-      </script>
-  </head>
-  <body>
-    digitalchecker.web.app
-    <button type="button" onclick="getDir()">test</button>
-  </body>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>digitalchecker.web.app</title>
+  <style media="screen">
+
+  </style>
+
+</head>
+
+<body>
+  digitalchecker.web.app
+</body>
+
 </html>
