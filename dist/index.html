@@ -114,225 +114,60 @@
             content: "% bearbeitet";
         }
     </style>
-    <script>
-        class QuizTimer extends HTMLElement {
-
-            static observedAttributes = ['duration'];
-
-            static format = (ms) => new Date(ms)
-                .toISOString()
-                .slice((ms >= 3600000)
-                    ? 12    // 0:00:00
-                    : 14,   //   00:00
-                    19);
-
-            constructor() {
-                super();
-
-                this.attachShadow({ mode: "open" });
-                this.shadowRoot.innerHTML = `
-        <svg viewBox="0 0 90 90">
-            <style>
-                @keyframes pacer {}
-
-                @keyframes timer {
-                    0% {
-                        stroke-width: 0px;
-                        stroke-dashoffset: -100px;
-                    }
-                    0.1% {
-                        stroke-width: 7px;
-                    }
-
-                    to {
-                        stroke-width: 7px;
-                        stroke-dashoffset: 0px;
-                    }
-                }
-
-                :host {
-                    /* position: relative; */
-                }
-
-                circle {
-                    fill: none;
-                    stroke: var(--background-color, lightgray);
-                    stroke-width: 7px;
-                }
-
-                path {
-                    fill: none;
-                    stroke-width: 0px;
-                    stroke: var(--color, black);
-                    stroke-linecap: round;
-                    animation: 3s linear .01s both paused timer,
-                        1s linear 4 .01s both paused pacer;
-                }
-
-                text {
-                    stroke: none;
-                    fill: currentColor;
-                    font-family: sans;
-                    font-size: 20px;
-                }
-            </style>
-            <circle cx="45" cy="45" r="40" />
-            <path id="p" d="M 45 5 A 20 20 0 0 1 45 85 A 20 20 0 0 1 45 5" 
-                stroke-dasharray="100"
-                pathLength="100" />
-            <text x="45" y="47.5" dominant-baseline="middle" text-anchor="middle">00:00</text>
-        </svg>`;
-
-                const path = this.shadowRoot.querySelector('path');
-
-                path.addEventListener('animationstart', (e) => {
-                    if (e.animationName == 'timer') {
-                        const event = new CustomEvent('quiztimerstart', {
-                            bubbles: true,
-                            detail: {
-                                duration: this.duration
-                            }
-                        });
-
-                        this.dispatchEvent(event)
-                        this.onstart(event);
-                    }
-                });
-
-                path.addEventListener('animationend', (e) => {
-                    if (e.animationName == 'timer') {
-                        const event = new CustomEvent('quiztimerend', {
-                            bubbles: true,
-                            detail: {
-                                duration: this.duration
-                            }
-                        });
-
-                        this.dispatchEvent(event)
-                        this.onend(event);
-                    }
-                });
-
-                path.addEventListener('animationiteration', (e) => {
-                    this.shadowRoot
-                        .querySelector('text')
-                        .textContent = QuizTimer
-                            .format(this.duration - e.elapsedTime * 1000);
-                });
-            }
-
-            attributeChangedCallback(name, oldValue, newValue) {
-                switch (name) {
-                    case 'duration':
-                        this.duration = parseInt(newValue);
-                        this.shadowRoot
-                            .querySelector('text')
-                            .textContent = QuizTimer
-                                .format(this.duration);
-                        break;
-                }
-            }
-
-            onpause(e) { console.debug(e); }
-            onstart(e) { console.debug(e); }
-            onend(e) { console.debug(e); }
-
-            start() {
-                const duration = parseInt(this.duration);
-
-                this.shadowRoot
-                    .querySelector('path')
-                    .getAnimations()
-                    .map((animation) => {
-                        animation.effect.updateTiming(
-                            (animation.animationName == 'pacer') ? {
-                                duration: duration / (duration / 1000),
-                                iterations: (duration / 1000) + 1
-                            } : {
-                                duration: duration,
-                            }
-                        );
-                        animation.play();
-                    });
-            }
-
-            pause() {
-                let anim;
-
-                this.shadowRoot
-                    .querySelector('path')
-                    .getAnimations()
-                    .map((animation) => {
-                        anim = animation;
-                        anim.pause();
-                    });
-
-                const event = new CustomEvent('quiztimerpause', {
-                    bubbles: true,
-                    detail: {
-                        currentTime: anim.currentTime,
-                        duration: this.duration
-                    }
-                });
-
-                this.dispatchEvent(event)
-                this.onpause(event);
-            }
-
-            finish() {
-                this.shadowRoot
-                    .querySelector('path')
-                    .getAnimations()
-                    .map((animation) => animation.finish());
-            }
+    <style>
+        #dlgWelcome {
+            width: 100vw;
+            max-width: unset;
+            height: 100vh;
+            max-height: unset;
+            border: none;
+            background: none;
         }
 
-        customElements.define("dc-quiztimer", QuizTimer);
-    </script>
-    <script>
-
-        // play(time, by)
-        const play = (time, by) => new Promise((resolve, reject) => {
-            console.assert(typeof time === 'number', `play(time, by): <time> must be type of number, not ${typeof time}`);
-            console.assert(typeof by === 'number', `play(time, by): <by> must be type of number, not ${typeof time}`);
-            console.assert(by >= 0, 'play(time, by): <by> must be non-negative or auto');
-
-            document.body
-                .animate([], { duration: by })
-                .onfinish = (e) => {
-                    document
-                        .getAnimations()
-                        .forEach((animation) => animation.pause());
-                    resolve(time + by);
-                }
-
-            document
-                .getAnimations()
-                .forEach((animation) => {
-                    animation.currentTime = time;
-                    animation.play();
-                });
-        });
-
-        // add(element, pseudoElement, scenes)
-        // add(element, scenes)
-        const add = (element, ...args) => {
-            console.assert(args.length);
-
-            const scenes = args.pop();
-            const pseudoElement = args.pop();   // could be null
-
-            for (const [time, keyFrameEffect] of Object.entries(scenes)) {
-                element
-                    .animate(keyFrameEffect.k, Object.assign({
-                        pseudoElement: pseudoElement,
-                        fill: 'forwards',
-                        delay: time
-                    }, keyFrameEffect.o))
-                    .pause();
-            };
+        button.info {
+            color: white;
+            margin: 8px;
+            padding: 4px 8px;
+            border: 2px solid currentColor;
         }
-    </script>
+
+        div.info {
+            color: white;
+            left: 280px;
+            width: 350px;
+            height: fit-content;
+            background-color: blue;
+            clip-path: polygon(10px 0%,
+                    100% 0%,
+                    100% 100%,
+                    10px 100%,
+                    10px calc(50% + 10px),
+                    0% 50%,
+                    10px calc(50% - 10px));
+            padding: 8px 8px 8px 18px;
+            position: absolute;
+            visibility: hidden;
+            opacity: 0;
+        }
+
+        div.right {
+            display: flex;
+            justify-content: end;
+        }
+
+        p.info {
+            padding: 8px;
+        }
+    </style>
+
+    <style>
+        section {
+            opacity: 0;
+            visibility: hidden;
+            color: white;
+        }
+    </style>
+    <script src="dc.js"></script>
 
 
 </head>
@@ -350,11 +185,49 @@
             <hr>
             <button type="button" class="nav finish">Fertigstellen</button>
         </nav>
-        <main>main
+        <main>
+            <section id="start">
+                start
+            </section>
         </main>
     </form>
 
-    <dialog id="dlgWelcome"></dialog>
+    <dialog id="dlgWelcome">
+        <div id="info1" class="info" style="top: 100px">
+            <p class="info">1</p>
+            <div class="right">
+                <button type="button" class="info" onclick="nextInfo(info1, info2)">OK</button>
+                <button type="button" class="info" onclick="nextInfo(info1)">Info überspringen</button>
+            </div>
+        </div>
+        <div id="info2" class="info" style="bottom: 65px">
+            <p class="info">2</p>
+            <div class="right">
+                <button type="button" class="info" onclick="nextInfo(info2, info3)">OK</button>
+                <button type="button" class="info" onclick="nextInfo(info2)">Info überspringen</button>
+            </div>
+        </div>
+        <div id="info3" class="info" style="top: 250px">
+            <p class="info">3</p>
+            <div class="right">
+                <button type="button" class="info" onclick="nextInfo(info3, info4)">OK</button>
+                <button type="button" class="info" onclick="nextInfo(info3)">Info überspringen</button>
+            </div>
+        </div>
+        <div id="info4" class="info" style="top: 300px">
+            <p class="info">4</p>
+            <div class="right">
+                <button type="button" class="info" onclick="nextInfo(info4, info5)">OK</button>
+                <button type="button" class="info" onclick="nextInfo(info4)">Info überspringen</button>
+            </div>
+        </div>
+        <div id="info5" class="info" style="bottom: 5px">
+            <p class="info">5</p>
+            <div class="right">
+                <button type="button" class="info" onclick="nextInfo(info5)">Start</button>
+            </div>
+        </div>
+    </dialog>
     <dialog id="dlgPause">
         <h1>Pause</h1>
         <button type="button"
@@ -362,12 +235,58 @@
     </dialog>
     <dialog id="dlgFinished"></dialog>
     <script>
-        data.elements.btnPause.addEventListener('click', (e) => {
-            e.target.disabled = !e.target.disabled
-            quiztimer.pause();
-            dlgPause.showModal();
+
+
+        add(start, {
+            0: {
+                k: [
+                    { opacity: 1, visibility: 'visible' },
+                ],
+                o: {
+                    duration: 300,
+                }
+            }
         })
-        data.addEventListener('quiztimerstart', (e) => { data.elements.btnPause.disabled = false })
+        /*  */
+        dlgWelcome.showModal();
+
+        // collect info-animations
+        // to cancel them after showing
+        const infoAnimations = [];
+
+        // show and hide infos with animation
+        const nextInfo = (src, dst) => {
+            if (!src && !dst) {
+                // before calling play() we have to
+                // cancel all info-animations
+                infoAnimations.forEach(animation => animation.cancel());
+
+                dlgWelcome.close();
+
+                // let's start the quiz here
+                play(0, 300);
+            }
+
+            if (src) {
+                const anim = src.animate([
+                    { opacity: 0, visibility: 'hidden' }
+                ], { duration: 300, fill: 'both' });
+                anim.onfinish = (e) => nextInfo(null, dst);
+                infoAnimations.push(anim);
+            }
+
+            if (dst) {
+                const anim = dst.animate([
+                    { opacity: 1, visibility: 'visible' }
+                ], {
+                    duration: 300, fill: 'both'
+                });
+                infoAnimations.push(anim);
+            }
+        }
+
+        nextInfo(null, info1);
+
     </script>
 
     <script type="x">
@@ -379,7 +298,7 @@
                     { opacity: 0 }
                 ],
                 o: {
-                    duration: 1300,
+                    duration: 300,
                 }
             },
             3000: {
