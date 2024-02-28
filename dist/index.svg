@@ -1,0 +1,69 @@
+<svg viewBox="0 0 1920 1080" xmlns="http://www.w3.org/2000/svg">
+    <title>Bridges</title>
+    <style type="text/css">
+        <![CDATA[
+        * {
+            font-family: sans-serif;
+        }
+
+        svg.sceene {
+            clip-path:inset(0 0 0 300px);
+        ]]>
+    </style>
+    <defs>
+        <symbol id="icon-check-circle" width="48" height="48" viewBox="0 -960 960 960">
+            <circle cx="50%" cy="-50%" r="50%" fill="transparent"></circle>
+            <path
+                d="m424-296 282-282-56-56-226 226-114-114-56 56 170 170Zm56 216q-83 0-156-31.5T197-197q-54-54-85.5-127T80-480q0-83 31.5-156T197-763q54-54 127-85.5T480-880q83 0 156 31.5T763-763q54 54 85.5 127T880-480q0 83-31.5 156T763-197q-54 54-127 85.5T480-80Zm0-80q134 0 227-93t93-227q0-134-93-227t-227-93q-134 0-227 93t-93 227q0 134 93 227t227 93Zm0-320Z" />
+        </symbol>
+
+        <symbol id="icon-pause-circle" width="48" height="48" viewBox="0 -960 960 960">
+            <circle cx="50%" cy="-50%" r="50%" fill="transparent"></circle>
+            <path
+                d="M360-320h80v-320h-80v320Zm160 0h80v-320h-80v320ZM480-80q-83 0-156-31.5T197-197q-54-54-85.5-127T80-480q0-83 31.5-156T197-763q54-54 127-85.5T480-880q83 0 156 31.5T763-763q54 54 85.5 127T880-480q0 83-31.5 156T763-197q-54 54-127 85.5T480-80Zm0-80q134 0 227-93t93-227q0-134-93-227t-227-93q-134 0-227 93t-93 227q0 134 93 227t227 93Zm0-320Z" />
+        </symbol>
+
+        <symbol id="icon-apps" width="48" height="48" viewBox="0 -960 960 960">
+            <circle cx="50%" cy="-50%" r="50%" fill="transparent"></circle>
+            <path
+                d="M240-160q-33 0-56.5-23.5T160-240q0-33 23.5-56.5T240-320q33 0 56.5 23.5T320-240q0 33-23.5 56.5T240-160Zm240 0q-33 0-56.5-23.5T400-240q0-33 23.5-56.5T480-320q33 0 56.5 23.5T560-240q0 33-23.5 56.5T480-160Zm240 0q-33 0-56.5-23.5T640-240q0-33 23.5-56.5T720-320q33 0 56.5 23.5T800-240q0 33-23.5 56.5T720-160ZM240-400q-33 0-56.5-23.5T160-480q0-33 23.5-56.5T240-560q33 0 56.5 23.5T320-480q0 33-23.5 56.5T240-400Zm240 0q-33 0-56.5-23.5T400-480q0-33 23.5-56.5T480-560q33 0 56.5 23.5T560-480q0 33-23.5 56.5T480-400Zm240 0q-33 0-56.5-23.5T640-480q0-33 23.5-56.5T720-560q33 0 56.5 23.5T800-480q0 33-23.5 56.5T720-400ZM240-640q-33 0-56.5-23.5T160-720q0-33 23.5-56.5T240-800q33 0 56.5 23.5T320-720q0 33-23.5 56.5T240-640Zm240 0q-33 0-56.5-23.5T400-720q0-33 23.5-56.5T480-800q33 0 56.5 23.5T560-720q0 33-23.5 56.5T480-640Zm240 0q-33 0-56.5-23.5T640-720q0-33 23.5-56.5T720-800q33 0 56.5 23.5T800-720q0 33-23.5 56.5T720-640Z" />
+        </symbol>
+    </defs>
+    <rect x="300" y="0" width="1620" height="1080" fill="#254c53"></rect>
+
+
+    <svg x="0" y="0" width="1920" height="1080">
+        <rect x="0" y="0" width="100" height="100" fill="red"></rect>
+        <circle cx="50" cy="50" r="50" mask="url(#myMask)" fill="yellow"></circle>
+
+    </svg>
+
+    <svg x="300" width="1620">
+        <g onclick="alert('You have clicked the circle.')">
+            <rect y="0" width="200" height="100" fill="blue" style="x: calc(50% - 100px)"></rect>
+            <circle cx="60" cy="50" r="50" fill="purple" mask="url(#icon-check-circle)"></circle>
+            <use href="#icon-check-circle" x="100" y="200" fill="green" />
+            <use href="#icon-pause-circle" x="100" y="240" fill="green" />
+            <use href="#icon-apps" x="100" y="280" />
+        </g>
+        <rect class="sceene" />
+    </svg>
+
+    <!-- TIMER -->
+    <svg x="45" y="60" width="210" height="210" viewBox="0 0 90 90">
+        <circle cx="45" cy="45" r="40" fill="none" stroke="lightgray" stroke-width="7"/>
+        <path d="M 45 5 A 20 20 0 0 1 45 85 A 20 20 0 0 1 45 5"
+            stroke="#333"
+            stroke-width="7"
+            stroke-linecap="round"
+            stroke-dasharray="10"
+            pathLength="100"
+            fill="none" />
+        <text x="45" y="47.5" dominant-baseline="middle" text-anchor="middle">00:00</text>
+    </svg>
+    <script>
+        <![CDATA[
+        document.querySelector('text').textContent='bla'
+        ]]>
+    </script>
+</svg>

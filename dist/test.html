@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="de">
+
+<head>
+    <title>Test</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+        *,
+        ::before,
+        ::after {
+            margin: 0;
+            box-sizing: border-box;
+            user-select: none;
+        }
+
+        body {
+            position: relative;
+            height: 300vh;
+        }
+
+        div {
+            width: 100px;
+            height: 100px;
+            /*             top: 100px;
+            left: 100px; */
+            background-color: gray;
+            position: fixed;
+        }
+
+        div#d::before {
+            position: relative;
+            content: "X";
+        }
+
+        nav {
+            position: fixed;
+        }
+    </style>
+    <script>
+        const add = (element, ...args) => {
+            const scenes = args.pop();
+            const pseudoElement = args.pop();   // could be null
+
+            for (const [time, keyFrameEffect] of Object.entries(scenes)) {
+
+            }
+        }
+
+        const play = async (by, from) => {
+            document
+                .getAnimations()
+                .forEach((animation) => {
+                    // seek
+                    animation.currentTime = from ?? animation.currentTime;
+                    // direction, -1 or +1
+                    animation.playbackRate = Math.sign(by);
+                    animation.play();
+                });
+
+            return Promise.resolve(document.body
+                .animate([], { duration: Math.abs(by) })
+                .finished.then((e) => {
+                    document
+                        .getAnimations()
+                        .forEach((animation) => animation.pause());
+                }));
+        }
+    </script>
+</head>
+
+<body>
+    <nav>
+
+        <button onclick="play(0).then(()=>play(0, 90))">AA</button>
+        <button onclick="play(1000,0)">BB</button>
+        <button onclick="play(-100)">CC</button>
+    </nav>
+    <main>
+        <div id="d" style="top: 0; left: 0;">A</div>
+        <div id="e" style="top: 0; left: 200px;background-color:red">B</div>
+        <div id="f" style="top: 0; left: 400px;background-color:yellow">C</div>
+    </main>
+    <script>
+
+        class scripted {
+
+            constructor() { throw new Error('') }
+
+            static play = async (by, from) => {
+                console.assert(!isNaN(by));
+
+                document
+                    .getAnimations()
+                    .forEach((animation) => {
+                        // seek
+                        animation.currentTime = from ?? animation.currentTime;
+                        // direction, -1 or +1
+                        animation.playbackRate = Math.sign(by);
+                        animation.play();
+                    });
+
+                return Promise.resolve(document.body
+                    .animate([], { duration: Math.abs(by) })
+                    .finished.then((e) => {
+                        document
+                            .getAnimations()
+                            .forEach((animation) => animation.pause());
+                    }));
+            }
+
+            static tween = (element, ...args) => {
+                console.assert(element instanceof HTMLElement)
+                const tweens = args.pop();
+                const pseudoElement = args.pop();   // could be null
+
+                const options = { duration: 0, fill: 'both', pseudoElement: pseudoElement };
+                const keyFrames = [];
+
+                Object
+                    .entries(tweens)
+                    // sort descending to get the highest time to calc duration
+                    .sort(([keyA, ObjA], [keyB, objB]) => { return keyB - keyA })
+                    .forEach(([timeOrOpts, data], idx) => {
+                        // distinct between times and options
+                        if (isNaN(timeOrOpts)) {
+                            options[timeOrOpts] = data;
+                        } else {
+                            // idx==0: the first entry give the highest time value
+                            // to calc the duration of this tween
+                            if (!idx) { options.duration = timeOrOpts * 1; }
+
+                            // calculate offset relative by time / duration
+                            data.offset = timeOrOpts / options.duration;
+                            keyFrames.push(data);
+                        }
+                    });
+
+                // sort keyframes in ascending 
+                // otherwise creating KeyframeEffect raises an error
+                keyFrames.sort((a, b) => a.offset - b.offset);
+
+                const keyframeEffect = new KeyframeEffect(element, keyFrames, options);
+                const animation = new Animation(keyframeEffect);
+                animation.pause();
+
+                return animation;
+            }
+
+            static group = (time, ...args) => {
+                console.assert(!isNaN(time));
+                console.assert(args.every((arg) => ['Array', 'Animation'].includes(arg.constructor.name)));
+
+                const animations = []
+
+                for (const arg of args) {
+                    if (Array.isArray(arg)) {
+                        arg.forEach((anim) => {
+                            const timing = anim.effect.getComputedTiming();
+                            timing.delay += time;
+                            anim.effect.updateTiming(timing);
+                            animations.push(anim);
+                        });
+                    } else {
+                        const timing = arg.effect.getComputedTiming();
+                        timing.delay += time;
+                        arg.effect.updateTiming(timing);
+                        animations.push(arg);
+                    }
+                }
+
+                return animations;
+            }
+
+            static sequence = (time, ...args) => {
+                console.assert(!isNaN(time));
+                console.assert(args.every((arg) => ['Array', 'Animation'].includes(arg.constructor.name)));
+
+                const animations = []
+
+                for (const arg of args) {
+                    if (Array.isArray(arg)) {
+                        let duration = 0;
+
+                        arg.forEach((anim) => {
+                            const timing = anim.effect.getComputedTiming();
+                            timing.delay += time;
+                            duration = Math.max(duration, timing.duration);
+                            anim.effect.updateTiming(timing);
+                            animations.push(anim);
+                        });
+
+                        time += duration;
+                    } else {
+                        const timing = arg.effect.getComputedTiming();
+                        timing.delay += time;
+                        time += timing.duration;
+                        arg.effect.updateTiming(timing);
+                        animations.push(arg);
+                    }
+                }
+
+                return animations;
+            }
+
+        }
+
+        let a = scripted.tween(d, /* '::before', */ {
+            0: {
+                left: '0px',
+            },
+            2_000: {
+                left: '100px'
+            },
+            endDelay: 10000,
+            easing: 'ease-in-out'
+        });
+
+        let b = scripted.tween(e, {
+            0: {
+                left: '200px',
+            },
+            2_000: {
+                left: '300px'
+            }
+        });
+
+        let c = scripted.tween(f, {
+            0: {
+                left: '400px',
+                rotate: '0deg'
+            },
+            2_000: {
+                left: '500px',
+                rotate: '360deg'
+            },
+            iterations: Infinity,
+            direction: 'reverse'
+        });
+
+        c.onfinish = (e) => { console.log(e) }
+
+        // console.log(c)
+
+        scripted.sequence(0, a, b, scripted.group(0, c))
+        /*       scripted.group(3000, a, b)
+              scripted.group(2000, a, c) */
+        scripted.play("20000")
+        /*             .then(() => {
+                        scripted.play(-1500)
+                            .then(() => {
+                                scripted.play(5600)
+                                    .then(() => { scripted.play(-6100) }
+                                    )
+                            })
+                    }) */
+
+
+    </script>
+</body>
+
+</html>

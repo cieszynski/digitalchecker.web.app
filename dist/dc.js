@@ -178,22 +178,22 @@ const play = (time, by) => new Promise((resolve, reject) => {
     console.assert(typeof time === 'number', `play(time, by): <time> must be type of number, not ${typeof time}`);
     console.assert(typeof by === 'number', `play(time, by): <by> must be type of number, not ${typeof time}`);
     console.assert(by >= 0, 'play(time, by): <by> must be non-negative or auto');
-
-    document.body
-        .animate([], { duration: by })
-        .onfinish = (e) => {
-            document
-                .getAnimations()
-                .forEach((animation) => animation.pause());
-            resolve(time + by);
-        }
-
+console.log(time, by)
     document
         .getAnimations()
         .forEach((animation) => {
             animation.currentTime = time;
             animation.play();
         });
+
+    document.body
+        .animate([], { duration: by })
+        .onfinish = (e) => {
+            document
+                .getAnimations()
+                .forEach((animation) => {animation.pause(); console.log(animation.currentTime)});
+            resolve(time + by);
+        }
 });
 
 // add(element, pseudoElement, scenes)
@@ -208,9 +208,13 @@ const add = (element, ...args) => {
         element
             .animate(keyFrameEffect.k, Object.assign({
                 pseudoElement: pseudoElement,
-                fill: 'forwards',
+               // fill: 'forwards',
                 delay: time
             }, keyFrameEffect.o))
             .pause();
     };
+}
+
+const run = () => {
+    
 }

@@ -34,6 +34,7 @@
             color: black;
             position: relative;
             line-height: 1;
+            display: block;
         }
 
         button.nav[disabled] {
@@ -146,7 +147,7 @@
                     10px calc(50% - 10px));
             padding: 8px 8px 8px 18px;
             position: absolute;
-            visibility: hidden;
+            pointer-events: none;
             opacity: 0;
         }
 
@@ -161,157 +162,319 @@
     </style>
 
     <style>
+        button.section {
+            color: white;
+            border: 2px solid currentColor;
+        }
+
         section {
             opacity: 0;
-            visibility: hidden;
+            pointer-events: none;
             color: white;
+            border: 12px solid yellow;
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
         }
+
+        /*  .clozetest, gapintext */
     </style>
     <script src="dc.js"></script>
+    <!-- <script src="https://cdn.jsdelivr.net/gh/cieszynski/scripted.js@main/dist/scripted.js"></script> -->
+    <script src="scripted.js"></script>
+    <script type="bla">
 
+class scripted {
+
+static play = async (by, from) => {
+    console.assert(!isNaN(by));
+
+    // helper to synchronize all animations
+    let currentTime = 0;
+
+    document
+        .getAnimations()
+        .forEach((animation) => {
+            // synchronize and seek
+            currentTime = animation.currentTime = from ?? animation.currentTime;
+            // direction, -1 or +1
+            animation.playbackRate = Math.sign(by);
+            animation.play();
+        });
+
+    return Promise.resolve(
+        document.body
+            .animate([], { duration: Math.abs(by) })
+            .finished.then((e) => {
+                // currentTime always >= 0
+                currentTime += (currentTime + by > 0) ? by : -currentTime;
+                document
+                    .getAnimations()
+                    .forEach((animation) => {
+                        animation.pause();
+                        animation.currentTime = currentTime;
+                    });
+                return currentTime;
+            }));
+}
+
+static tween = (element, ...args) => {
+    console.assert(element instanceof HTMLElement);
+
+    const tweens = args.pop();
+    const pseudoElement = args.pop();   // could be null
+
+    const options = { duration: 0, fill: 'both', pseudoElement: pseudoElement, endDelay: Number.MAX_VALUE };
+    const keyFrames = [];
+
+    Object
+        .entries(tweens)
+        // sort in descending order to obtain
+        // the highest time value for calculating the duration
+        .sort(([keyA, ObjA], [keyB, objB]) => { return keyB - keyA })
+        .forEach(([timeOrOpts, data], idx) => {
+            // distinct between times and options
+            if (isNaN(timeOrOpts)) {
+                options[timeOrOpts] = data;
+            } else {
+                // idx==0: the first entry give the highest
+                // time value for calculating the duration
+                if (!idx) { options.duration = timeOrOpts * 1; }
+
+                // calculate offset relative by time / duration
+                data.offset = timeOrOpts / options.duration;
+                keyFrames.push(data);
+            }
+        });
+
+    // sort keyframes by offset in ascending order,
+    // otherwise creating KeyframeEffect raises an error
+    keyFrames.sort((a, b) => a.offset - b.offset);
+
+    const keyframeEffect = new KeyframeEffect(element, keyFrames, options);
+    const animation = new Animation(keyframeEffect);
+    animation.pause();
+
+    return animation;
+}
+
+static group = (time, ...args) => {
+    console.assert(!isNaN(time));
+    console.assert(args.every((arg) => ['Array', 'Animation'].includes(arg.constructor.name)));
+
+    const animations = []
+
+    for (const arg of args) {
+        if (Array.isArray(arg)) {
+            arg.forEach((anim) => {
+                const timing = anim.effect.getComputedTiming();
+                timing.delay += time;
+                anim.effect.updateTiming(timing);
+                animations.push(anim);
+            });
+        } else {
+            const timing = arg.effect.getComputedTiming();
+            timing.delay += time;
+            arg.effect.updateTiming(timing);
+            animations.push(arg);
+        }
+    }
+
+    return animations;
+}
+
+static sequence = (time, ...args) => {
+    console.assert(!isNaN(time));
+    console.assert(args.every((arg) => ['Array', 'Animation'].includes(arg.constructor.name)));
+
+    const animations = []
+
+    for (const arg of args) {
+        if (Array.isArray(arg)) {
+            let duration = 0;
+
+            arg.forEach((anim) => {
+                const timing = anim.effect.getComputedTiming();
+                timing.delay += time;
+                duration = Math.max(duration, timing.duration);
+                anim.effect.updateTiming(timing);
+                animations.push(anim);
+            });
+
+            time += duration;
+        } else {
+            const timing = arg.effect.getComputedTiming();
+            timing.delay += time;
+            time += timing.duration;
+            arg.effect.updateTiming(timing);
+            animations.push(arg);
+        }
+    }
+
+    return animations;
+}
+}
+
+    </script>
 
 </head>
 
 <body>
     <form id="data">
-        <nav>
+        <nav id="black">
             <dc-quiztimer id="quiztimer" duration="3600000" onclick="this.start()"></dc-quiztimer>
 
             <output value=".35" class="progress" name="progress">100</output>
             <hr>
-            <button type="button" class="nav overview">Übersicht</button>
+            <button type="button" class="nav overview"
+                onclick="scripted.play(300).then((ms)=>console.log(ms))">Übersicht</button>
+            <button type="button" class="nav overview"
+                onclick="scripted.play(-300).then((ms)=>console.log(ms))">Übersicht</button>
             <hr>
-            <button name="btnPause" type="button" class="nav pause" style="margin-top: auto;" disabled>Pause</button>
+            <hr style="margin-top: auto;">
+            <button name="btnPause" type="button" class="nav pause"
+                onclick="scripted.play(5000, 0).then((ms)=>console.log(ms))">Pause</button>
             <hr>
-            <button type="button" class="nav finish">Fertigstellen</button>
+            <button type="button" class="nav finish" onclick="scripted.play(2000, 3000).then((ms)=>console.log(ms))">Fertigstellen</button>
         </nav>
         <main>
-            <section id="start">
-                start
+
+            <section id="section1">
+                <header>
+
+                </header>
+                <article>
+                    section1
+                </article>
+            </section>
+            <section id="section0">
+                <button type="button" class="section"
+                    onclick="scripted.play(600).then((ms)=>console.log(ms))">START</button>
             </section>
         </main>
     </form>
-
     <dialog id="dlgWelcome">
-        <div id="info1" class="info" style="top: 100px">
-            <p class="info">1</p>
+        <div id="info1" class="info" style="top: 100px;">
+            <p class="info">INFO</p>
             <div class="right">
-                <button type="button" class="info" onclick="nextInfo(info1, info2)">OK</button>
-                <button type="button" class="info" onclick="nextInfo(info1)">Info überspringen</button>
+                <button type="button" class="info" onclick="scripted.play(600)">OK</button>
+                <button type="button" class="info" onclick="SKIP_INFO()">Überspringen</button>
             </div>
         </div>
-        <div id="info2" class="info" style="bottom: 65px">
-            <p class="info">2</p>
+        <div id="info2" class="info" style="bottom: 70px;">
+            <p class="info">INFO2</p>
             <div class="right">
-                <button type="button" class="info" onclick="nextInfo(info2, info3)">OK</button>
-                <button type="button" class="info" onclick="nextInfo(info2)">Info überspringen</button>
+                <button type="button" class="info" onclick="scripted.play(600)">OK</button>
+                <button type="button" class="info" onclick="SKIP_INFO()">Überspringen</button>
             </div>
         </div>
-        <div id="info3" class="info" style="top: 250px">
-            <p class="info">3</p>
+        <div id="info3" class="info" style="top: 225px;">
+            <p class="info">INFO3</p>
             <div class="right">
-                <button type="button" class="info" onclick="nextInfo(info3, info4)">OK</button>
-                <button type="button" class="info" onclick="nextInfo(info3)">Info überspringen</button>
+                <button type="button" class="info" onclick="scripted.play(600)">OK</button>
+                <button type="button" class="info" onclick="SKIP_INFO()">Überspringen</button>
             </div>
         </div>
-        <div id="info4" class="info" style="top: 300px">
-            <p class="info">4</p>
+        <div id="info4" class="info" style="top: 300px;">
+            <p class="info">INFO4</p>
             <div class="right">
-                <button type="button" class="info" onclick="nextInfo(info4, info5)">OK</button>
-                <button type="button" class="info" onclick="nextInfo(info4)">Info überspringen</button>
+                <button type="button" class="info" onclick="scripted.play(600)">OK</button>
+                <button type="button" class="info" onclick="SKIP_INFO()">Überspringen</button>
             </div>
         </div>
-        <div id="info5" class="info" style="bottom: 5px">
-            <p class="info">5</p>
+        <div id="info5" class="info" style="bottom: 50px;">
+            <p class="info">INFO5</p>
             <div class="right">
-                <button type="button" class="info" onclick="nextInfo(info5)">Start</button>
+                <button type="button" class="info" onclick="SKIP_INFO()">Fertig</button>
             </div>
         </div>
     </dialog>
-    <dialog id="dlgPause">
-        <h1>Pause</h1>
-        <button type="button"
-            onclick="dlgPause.close();quiztimer.start();data.elements.btnPause.disabled = !data.elements.btnPause.disabled">Weiter</button>
-    </dialog>
-    <dialog id="dlgFinished"></dialog>
     <script>
+        class $ extends scripted { }
 
+        const SKIP_INFO = () => {
+            scripted.play(300).then((ms) => { dlgWelcome.close(); scripted.play(300, 3000) })
+        }
 
-        add(start, {
+        const TWEEN_FADE_IN_OUT = {
             0: {
-                k: [
-                    { opacity: 1, visibility: 'visible' },
-                ],
-                o: {
-                    duration: 300,
-                }
-            }
-        })
-        /*  */
-        dlgWelcome.showModal();
+                pointerEvents: 'none',
+                opacity: 0
+            },
+            300: {
+                pointerEvents: 'all',
+                opacity: 1
+            },
+            600: {
+                pointerEvents: 'none',
+                opacity: 0
+            },
+            composite: 'add'
+        }
 
-        // collect info-animations
-        // to cancel them after showing
-        const infoAnimations = [];
 
-        // show and hide infos with animation
-        const nextInfo = (src, dst) => {
-            if (!src && !dst) {
-                // before calling play() we have to
-                // cancel all info-animations
-                infoAnimations.forEach(animation => animation.cancel());
-
-                dlgWelcome.close();
-
-                // let's start the quiz here
-                play(0, 300);
-            }
-
-            if (src) {
-                const anim = src.animate([
-                    { opacity: 0, visibility: 'hidden' }
-                ], { duration: 300, fill: 'both' });
-                anim.onfinish = (e) => nextInfo(null, dst);
-                infoAnimations.push(anim);
-            }
-
-            if (dst) {
-                const anim = dst.animate([
-                    { opacity: 1, visibility: 'visible' }
-                ], {
-                    duration: 300, fill: 'both'
-                });
-                infoAnimations.push(anim);
+        const TWEEN_FADE_IN = {
+            0: {
+                opacity: 0,
+            },
+            1000: {
+                opacity: 1
             }
         }
 
-        nextInfo(null, info1);
 
-    </script>
-
-    <script type="x">
-
-        add(div, '::before', {
+        const TWEEN_FADE_OUT = {
             0: {
-                k: [
-                    { opacity: 1 },
-                    { opacity: 0 }
-                ],
-                o: {
-                    duration: 300,
-                }
+                opacity: 1,
             },
-            3000: {
-                k: [
-                    { opacity: 0 },
-                    { opacity: 1, backgroundColor: 'green' }
-                ],
-                o: {
-                    duration: 2300,
+            1000: {
+                opacity: 0
+            }
+        }
+
+
+
+        /*         scripted.sequence(0,
+                    scripted.tween(info1, TWEEN_FADE_IN_OUT),
+                    scripted.tween(info2, TWEEN_FADE_IN_OUT),
+                    scripted.tween(info3, TWEEN_FADE_IN_OUT),
+                    scripted.tween(info4, TWEEN_FADE_IN_OUT),
+                    scripted.tween(info5, TWEEN_FADE_IN_OUT)
+                ); */
+
+        scripted.sequence(500,
+            scripted.sequence(500,
+                scripted.tween(section0, TWEEN_FADE_IN),
+                scripted.tween(section1, TWEEN_FADE_IN),
+                scripted.tween(section0, TWEEN_FADE_OUT),
+                scripted.tween(section1, TWEEN_FADE_OUT)
+            )
+        )
+        //);
+        /*         section0.animate([{
+                    pointerEvents: 'none',
+                    opacity: 0,
+                }, {
+                    pointerEvents: 'all',
+                    opacity: 1
                 }
-            },
-        })
+                ], {
+                    composite: 'add',
+                    duration: 1000
+                }).pause() */
+
+
+
+        //   dlgWelcome.showModal()
+         scripted.play(5000)
+
+        /*         for (const a of section0.getAnimations()) {
+                    console.log(a.effect.getComputedTiming())
+                } */
     </script>
+
 </body>
 
 </html>
