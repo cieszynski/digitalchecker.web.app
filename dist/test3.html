@@ -22,8 +22,6 @@
             position: relative;
             display: grid;
             grid-template-rows: auto 1fr auto;
-            /*             display: flex;
-            flex-direction: column; */
         }
 
         article header {
@@ -139,6 +137,7 @@
         nav
     </nav>
     <main>
+        <form id="bla"></form>
         <article id="article">
             <section id="welcome">
                 Willkommen
@@ -149,8 +148,8 @@
                 <h1 id="chapter">article</h1>
                 <video id="video" controls>
                     <source src="assets/animation.webm" type="video/webm">
-                    <!-- <track kind="subtitles" src="test3.vtt" mode="showing"> -->
-                    <track kind="metadata" id="metadata" src="meta.vtt" default>
+                    <track kind="subtitles" id="subtitles" src="test3.vtt">
+                    <track kind="metadata" id="metadata" src="meta.vtt">
                 </video>
             </header>
             <footer id="footer">
@@ -160,23 +159,104 @@
             </footer>
         </article>
     </main>
+
     <script>
+        const dbName = 'digitalchecke.bridges';
+        const objStore = 'quiz'
+        const dbVersion = 1;
+
+        const connect = () => {
+            return new Promise((resolve, reject) => {
+
+                const db = indexedDB.open(dbName, dbVersion);
+
+                db.onerror = event => {
+                    console.log('error opening IndexedDB');
+                    reject();
+                };
+
+                db.onsuccess = event => {
+                    console.log('success opening IndexedDB')
+
+                    resolve(event.target.result);
+                }
+
+                db.onupgradeneeded = event => {
+                    console.log('onupgradeneeded');
+                    const db = event.target.result;
+
+                    switch (dbVersion) {
+
+                        case 1:
+                            const store = db.createObjectStore(objStore, {
+                                keyPath: 'id',
+                                autoIncrement: false
+                            });
+                            store.createIndex("form", "form", {
+                                unique: false
+                            });
+                    }
+                }
+            });
+        }
+    </script>
+    <script>
+        const FADE_TIME = 300;
+
+        const attr2obj = (mapping) => Object
+            .fromEntries(Array.from(mapping)
+                .map(item => [item.name, item.value]))
+
         let current = welcome;
-        let nbar = undefined;
+
+        article.addEventListener('input', async (event) => {
+            const db = await connect();
+            const store = db
+                .transaction(objStore, "readwrite")
+                .objectStore(objStore);
+
+            const obj = attr2obj(event.target.attributes);
+            obj.checked = event.target.checked;
+
+            if (obj.type === 'radio') {
+                bla.elements.namedItem(obj.name).forEach(item => {
+                    const o2 = attr2obj(item.attributes);
+                    o2.checked = item.checked;
+                    store.put(o2);
+                })
+            } else {
+
+            }
+        });
 
         footer.addEventListener('click', (event) => {
-            if (video.paused) {
+            if (video.paused && event.target.value) {
                 video.currentTime = event.target.value;
-                video.play()
             }
         })
 
-        metadata.onload = (event) => {
+        // https://developer.chrome.com/blog/play-request-was-interrupted
+        video.onseeked = (event) => { video.play(); }
+
+        subtitles.default = true;
+        metadata.default = true;
+        metadata.onload = async (event) => {
+            const db = await connect();
+            const store = db
+                .transaction(objStore, "readwrite")
+                .objectStore(objStore);
 
             let seen = undefined;
-            let scount = 1;
+
+            let count = await new Promise((resolve, reject) => {
+                let c = store.count();
+                c.onsuccess = event => {
+                    resolve(event.target.result);
+                }
+            });
 
             Array.from(metadata.track.cues).forEach((cue, idx) => {
+                console.assert(/^[A-Za-z]+[\w\-\:\.]*$/.test(cue.id)); // valid identifier
 
                 let previous = seen;
                 let nbarbutton = document.createElement('button');
@@ -188,6 +268,20 @@
 
                 article.insertAdjacentHTML("afterbegin", cue.text);
                 let section = article.firstElementChild;
+
+                section.querySelectorAll('input').forEach(item => {
+                    const obj = attr2obj(item.attributes);
+
+                    if (count) {
+                        store.get(obj.id).onsuccess = event => {
+                            console.log(event.target.result)
+                            item.checked = event.target.result.checked
+                        }
+                    } else {
+                        obj.checked = item.checked;
+                        store.put(obj);
+                    }
+                })
 
                 cue.pauseOnExit = true;
                 cue.onenter = (event) => {
@@ -206,13 +300,18 @@
                     current.animate([
                         { opacity: 1 },
                         { opacity: 0, visibility: 'hidden' }
-                    ], { fill: "both", duration: 300 })
+                    ], { fill: "both", duration: FADE_TIME })
                         .finished.then((e) => {
                             current = section;
+                            console.log
                             current.animate([
                                 { opacity: 0 },
                                 { opacity: 1, visibility: 'visible' }
-                            ], { fill: "both", duration: 300 })
+                            ], {
+                                fill: "both",
+                                duration: FADE_TIME,
+                                delay: ((cue.endTime - cue.startTime) * 1000 - FADE_TIME)
+                            });
                         });
                 }
 

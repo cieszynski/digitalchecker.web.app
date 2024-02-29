@@ -4,9 +4,17 @@ chapter1
 00:00.000 --> 00:01.000
 <section>
 <header>
-    <h2>Was ist die Antwort?
+    <h2>Was ist die Antwort?</h2>
+    <p>Bitte beantworten</p>
 </header>
-section 11
+    <label>
+        <input type="radio" form="bla" name="quest1" id="answ1" value="0">
+        Antwort 1
+    </label>
+    <label>
+        <input type="radio" form="bla" name="quest1" id="answ2" value="1">
+        Antwort 2
+    </label>
 </section>
 
 chapter1
@@ -22,7 +30,7 @@ section 21
 </section>
 
 chapter2
-00:03.100 --> 00:04.000
+00:03.100 --> 00:05.000
 <section>
 section 22
 </section>
